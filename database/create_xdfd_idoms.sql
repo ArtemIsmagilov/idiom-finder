@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS xdxf_idioms;
+
+CREATE TABLE xdxf_idioms(
+name VARCHAR UNIQUE NOT NULL
+)
+;
