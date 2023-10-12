@@ -33,7 +33,11 @@
 ## Examples
 
 * Empty searcher -> Click `GO` -> All idioms
-* `A` -> Click `GO` -> All idioms with character `A` or `a`
+* `%A%` -> Click `GO` -> All idioms with character `A` or `a`
+* `A` -> Click `GO` -> Get idiom where input text == `A` or `a`
+* more examples SQL queries 
+  + https://www.sqlitetutorial.net/sqlite-like/
+  + https://www.sqlite.org/lang_expr.html#like
 * Сase insensitive search
 
 ### Installing
@@ -58,6 +62,8 @@
    ```
 4. add folders `db` and `imgs`
 
+## Info about idioms
+- https://langformula.ru/english-idioms/
 
 ## Internet sources
 
@@ -75,3 +81,6 @@
   wx.TextCtrl https://stackoverflow.com/questions/46313673/how-can-i-change-the-color-of-specific-words-in-wxpython-textctrl
 - Learn wxpython by YouTube https://proproprogs.ru/wxpython
 - wxpython tutorial https://zetcode.com/wxpython/
+
+## Problems
+- it is difficult to intercept the error, incorrect application design
