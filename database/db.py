@@ -17,7 +17,7 @@ class Idiom:
         return self.cur.fetchone()
 
     def update(self, from_name: str, to_name: str):
-        self.cur.execute('UPDATE all_idioms SET name=? WHERE name=?', (to_name, from_name))
+        self.cur.execute('UPDATE all_idioms SET name=? WHERE name=?;', (to_name, from_name))
         return self.cur.fetchone()
 
     def insert(self, name: str):
@@ -28,16 +28,13 @@ class Idiom:
         self.cur.execute('SELECT * FROM all_idioms;', )
         return self.cur.fetchall()
 
-    def find(self, args: tuple[str, ...]):
-        self.cur.execute('''SELECT name FROM all_idioms
-                                    WHERE ? LIKE '% ' || name || ' %'
-                                    OR ? LIKE name || ' %'
-                                    OR ? LIKE '% ' || name;
-                                ''', args)
+    def find(self, sentence: str):
+        self.cur.execute("SELECT name FROM all_idioms WHERE ? LIKE '%' || name || '%' AND LENGTH(name) > 6;",
+                         (sentence,))
         return self.cur.fetchall()
 
     def like(self, text: str):
-        self.cur.execute("SELECT name FROM all_idioms WHERE name LIKE ? ORDER BY name;", (f'%{text}%',))
+        self.cur.execute("SELECT name FROM all_idioms WHERE name LIKE ? ORDER BY name;", (text,))
         return self.cur.fetchall()
 
     def removes(self, list_text: list[tuple[str], ...]):

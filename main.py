@@ -1,3 +1,4 @@
+import time
 from concurrent import futures
 import wx, os, shutil
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
@@ -49,7 +50,7 @@ class Example(wx.Frame):
         app_menu.AppendSeparator()
         exit_item = app_menu.Append(wx.ID_EXIT, "Quit\tCtrl+Q", "Exit App")
 
-        self.SetIcon(wx.Icon("imgs/app.png"))
+        self.SetIcon(wx.Icon("imgs/app.ico"))
 
         i = wx.Bitmap('imgs/settings.png')
         i.Rescale(i, (25, 25))
@@ -135,15 +136,12 @@ class Example(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         vbox.Add(hbox_search, flag=wx.ALIGN_RIGHT)
-        vbox.Add(self.list_idioms, proportion=1, flag=wx.EXPAND)
+        vbox.Add(self.list_idioms, proportion=1, flag=wx.EXPAND | wx.ALL, border=15)
 
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.btn_add = (wx.Button(self.panel2, id=BUTTON_ADD_ID, label='Add', size=(70, 30)))
-        self.btn_remove = wx.Button(self.panel2, id=BUTTON_DELETE_ID, label='Delete', size=(70, 30))
-
-        hbox6.Add(self.btn_add)
-        hbox6.Add(self.btn_remove)
+        hbox6.Add(wx.Button(self.panel2, id=BUTTON_ADD_ID, label='Add', size=(70, 30)))
+        hbox6.Add(wx.Button(self.panel2, id=BUTTON_DELETE_ID, label='Delete', size=(70, 30)))
 
         vbox.Add(hbox6, flag=wx.ALIGN_RIGHT | wx.RIGHT, border=15)
 
@@ -176,6 +174,7 @@ class Example(wx.Frame):
 
         self.sb.SetStatusText('Select Idioms...')
         self.gauge.Show()
+
         count = 0
         for count, r in enumerate(data, 1):
             if self.stop:
@@ -185,8 +184,8 @@ class Example(wx.Frame):
             self.list_idioms.Append((count, r['name']))
 
         self.gauge.Hide()
+
         self.sb.SetStatusText('Competed Load idioms: %d' % count)
-        self.AutoLayout()
         self.stop = True
 
     def FindAllIdioms(self, text: str):
@@ -201,8 +200,7 @@ class Example(wx.Frame):
                 i = line.strip()
                 if not i:
                     continue
-
-                result = session.find((i, i, i))
+                result = session.find(i)
                 idioms = [i['name'] for i in result]
                 if idioms:
                     count += 1
@@ -226,8 +224,10 @@ class Example(wx.Frame):
         thread_pool_executor.submit(self.FindAllIdioms, text)
 
     def OnClear(self, e):
+        self.StopLoadTable()
         self.left_text.Clear()
         self.right_text.Clear()
+        self.sb.SetStatusText("Clear.")
 
     def OnGo(self, e):
         self.StopLoadTable()
@@ -243,22 +243,21 @@ class Example(wx.Frame):
         thread_pool_executor.submit(self.LoadIdioms, data)
 
     def OnRemove(self, e):
-        self.StopLoadTable()
-
         dlg = wx.MessageBox('Are you sure you want to delete the selected idioms?', 'Question',
-                            wx.YES_NO | wx.NO_DEFAULT, parent=self)
+                            style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION, parent=self)
 
         if dlg == wx.NO:
             return
         elif dlg == wx.YES:
             len_data = self.list_idioms.GetItemCount()
-            items = [(self.list_idioms.GetItem(i, 1)) for i in range(len_data) if
-                     self.list_idioms.IsItemChecked(i)]
+            items = [(self.list_idioms.GetItem(i, 1)) for i in range(len_data) if self.list_idioms.IsItemChecked(i)]
 
             idioms = [(i.Text,) for i in items]
-            with db.Idiom() as session:
-                session.removes(idioms)
-                session.conn.commit()
+            if idioms:
+                self.StopLoadTable()
+                with db.Idiom() as session:
+                    session.removes(idioms)
+                    session.conn.commit()
 
             for i in items:
                 self.list_idioms.DeleteItem(i.GetId())
@@ -273,8 +272,7 @@ class Example(wx.Frame):
                 result = session.get(text)
 
                 if result:
-                    dlg = wx.MessageBox('Idiom `{}` is exist'.format(result['name']), 'Warning', wx.ICON_EXCLAMATION,
-                                        self)
+                    dlg = wx.MessageBox('Idiom `{}` is exist'.format(result['name']), 'Warning', wx.ICON_WARNING, self)
                 else:
                     session.insert(text)
                     session.conn.commit()
