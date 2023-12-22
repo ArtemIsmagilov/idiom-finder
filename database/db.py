@@ -36,7 +36,7 @@ def insert(cur: Cursor, name: str):
 
 
 def find(cur: Cursor, text: str) -> list[Row | None]:
-    data = ({'sentence': l.strip()} for l in re.split(r'[?.!]+', re.sub(r'\n| {2,}|\.{2,}', ' ', text)))
+    data = tuple({'sentence': re.sub(r' {2,}', ' ', l.strip())} for l in re.split(r'[?.!]+', re.sub(r'\n| {2,}|\.{2,}', ' ', text)) if l.strip())
     cur.execute('CREATE TEMP TABLE temp_sentences(sentence PRIMARY KEY);')
     cur.executemany('INSERT OR IGNORE INTO temp_sentences VALUES(:sentence);', data)
     cur.execute("""
