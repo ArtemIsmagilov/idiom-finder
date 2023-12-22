@@ -1,42 +1,55 @@
-import sqlite3, os
+import sqlite3
+from threading import Thread
+import re
+from sqlite3 import Cursor, Connection, Row
 
 
-class Idiom:
-    def __enter__(self, file='database.sqlite3'):
-        self.conn = sqlite3.connect(f'database/{file}')
-        self.conn.row_factory = sqlite3.Row
-        self.cur = self.conn.cursor()
-        return self
+def get_conn(database='database.sqlite3', *args, **kwargs) -> Cursor:
+    conn = sqlite3.connect(f'database/{database}', *args, **kwargs)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    return cur
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cur.close()
-        self.conn.close()
 
-    def get(self, name: str):
-        self.cur.execute('SELECT * FROM all_idioms WHERE name=?;', (name,))
-        return self.cur.fetchone()
+def close_conn(cur: Cursor):
+    cur.close()
+    cur.connection.close()
 
-    def update(self, from_name: str, to_name: str):
-        self.cur.execute('UPDATE all_idioms SET name=? WHERE name=?;', (to_name, from_name))
-        return self.cur.fetchone()
 
-    def insert(self, name: str):
-        self.cur.execute('INSERT OR IGNORE INTO all_idioms(name) VALUES(?);', (name,))
-        return self.cur.fetchone()
+def get(cur: Cursor, name: str) -> Row | None:
+    cur.execute('SELECT * FROM all_idioms WHERE name=?;', (name,))
+    return cur.fetchone()
 
-    def get_all(self):
-        self.cur.execute('SELECT * FROM all_idioms;', )
-        return self.cur.fetchall()
 
-    def find(self, sentence: str):
-        self.cur.execute("SELECT name FROM all_idioms WHERE ? LIKE '%' || name || '%' AND LENGTH(name) > 6;",
-                         (sentence,))
-        return self.cur.fetchall()
+def get_all(cur: Cursor) -> list[Row]:
+    cur.execute('SELECT name FROM all_idioms;', )
+    return cur.fetchall()
 
-    def like(self, text: str):
-        self.cur.execute("SELECT name FROM all_idioms WHERE name LIKE ? ORDER BY name;", (text,))
-        return self.cur.fetchall()
 
-    def removes(self, list_text: list[tuple[str], ...]):
-        self.cur.executemany('DELETE FROM all_idioms WHERE name=?;', list_text)
-        return self.cur.fetchall()
+def update(cur: Cursor, from_name: str, to_name: str) -> Row | None:
+    cur.execute('UPDATE all_idioms SET name=:to_name WHERE name=:from_name;', {'to_name': to_name, 'from_name': from_name})
+    return cur.fetchone()
+
+
+def insert(cur: Cursor, name: str):
+    cur.execute('INSERT INTO all_idioms(name) VALUES(:name);', {'name': name})
+
+
+def find(cur: Cursor, text: str) -> list[Row | None]:
+    data = ({'sentence': l.strip()} for l in re.split(r'[?.!]+', re.sub(r'\n| {2,}|\.{2,}', ' ', text)))
+    cur.execute('CREATE TEMP TABLE temp_sentences(sentence PRIMARY KEY);')
+    cur.executemany('INSERT OR IGNORE INTO temp_sentences VALUES(:sentence);', data)
+    cur.execute("""
+    SELECT sentence, GROUP_CONCAT(name) AS names FROM temp_sentences, all_idioms
+    WHERE INSTR(sentence, name) > 0 AND LENGTH(name) > 6 GROUP BY sentence;
+    """, )
+    return cur.fetchall()
+
+def like(cur: Cursor, text: str) -> list[Row | None]:
+    cur.execute("SELECT name FROM all_idioms WHERE name LIKE :name ORDER BY name;", {'name': text})
+    return cur.fetchall()
+
+
+def removes(cur: Cursor, container_text: dict[str, str]) -> list[Row | None]:
+    cur.execute('DELETE FROM all_idioms WHERE name in (:names)', container_text)
+    return cur.fetchall()

@@ -1,9 +1,9 @@
-CREATE TABLE all_idioms (
-name VARCHAR UNIQUE NOT NULL
-);
-
-INSERT INTO all_idioms(name)
+BEGIN TRANSACTION;
+CREATE TABLE all_idioms (name VARCHAR PRIMARY KEY);
+INSERT OR IGNORE INTO all_idioms
 SELECT name FROM wiki_idioms
 UNION
-SELECT name FROM xdfd_idioms
-ORDER BY name;
+SELECT name FROM xdxf_idioms
+ORDER BY name
+;
+COMMIT;

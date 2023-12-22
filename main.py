@@ -1,8 +1,7 @@
-import time
+import sqlite3
 from concurrent import futures
 import wx, os, shutil
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
-
 from database import db
 
 APP_EXIT = 1
@@ -130,7 +129,7 @@ class Example(wx.Frame):
         self.list_idioms = ListCtrlMixins(self.panel2, LIST_IDIOMS, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
 
         self.list_idioms.SetFont(wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName=""))
-        self.list_idioms.InsertColumn(0, 'id', width=80)
+        self.list_idioms.InsertColumn(0, '№', width=80)
         self.list_idioms.InsertColumn(1, 'name', width=140)
 
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -160,25 +159,25 @@ class Example(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnRemove, id=BUTTON_DELETE_ID)
         self.Bind(wx.EVT_BUTTON, self.OnGo, id=BUTTON_GO)
 
-        with db.Idiom() as session:
-            data = session.get_all()
-        self.searcher.AppendText('first 1000 idioms from %s' % len(data))
+        session = db.get_conn()
+        db.close_conn(session)
 
-        thread_pool_executor.submit(self.LoadIdioms, data[:1000])
+        self.searcher.AppendText('search...')
+
+        #thread_pool_executor.submit(self.LoadIdioms, data[:1000])
 
     def LoadIdioms(self, data):
         self.stop = False
         self.list_idioms.DeleteAllItems()
         len_data = len(data)
         self.gauge.SetRange(len_data)
-
-        self.sb.SetStatusText('Select Idioms...')
         self.gauge.Show()
+        self.sb.SetStatusText('Select Idioms...')
 
         count = 0
-        for count, r in enumerate(data, 1):
+        for r in data:
+            count += 1
             if self.stop:
-                print('STOP')
                 break
             self.gauge.SetValue(count)
             self.list_idioms.Append((count, r['name']))
@@ -190,26 +189,25 @@ class Example(wx.Frame):
 
     def FindAllIdioms(self, text: str):
         self.stop = False
+        session = db.get_conn()
+        result = db.find(session, text)
+
+        count = 0
         self.sb.SetStatusText("Loading...")
+        for r in result:
+            count += 1
+            if self.stop is True:
+                return
+            names, sentence = r['names'], r['sentence']
 
-        with db.Idiom() as session:
-            count = 0
-            for line in text.splitlines():
-                if self.stop:
-                    return
-                i = line.strip()
-                if not i:
-                    continue
-                result = session.find(i)
-                idioms = [i['name'] for i in result]
-                if idioms:
-                    count += 1
-                    line1 = '{}) {}\n'.format(count, ', '.join(idioms), )
-                    line2 = f'- {repr(i)}\n\n'
-                    self.right_text.AppendText(line1)
-                    self.right_text.AppendText(line2)
+            line1 = f'{count}){names!r}\n'
+            line2 = f'\n{sentence!r}\n\n'
+            self.right_text.AppendText(line1)
+            self.right_text.AppendText(line2)
 
-        if not self.right_text.GetValue().strip():
+        db.close_conn(session)
+
+        if not self.right_text.GetValue():
             self.right_text.AppendText('Not found Idioms.')
 
         self.sb.SetStatusText("Search completed.")
@@ -218,7 +216,6 @@ class Example(wx.Frame):
     def OnSearch(self, e):
         text = self.left_text.GetValue()
         self.right_text.Clear()
-        self.sb.SetStatusText("Loading...")
 
         self.StopLoadTable()
         thread_pool_executor.submit(self.FindAllIdioms, text)
@@ -232,14 +229,14 @@ class Example(wx.Frame):
     def OnGo(self, e):
         self.StopLoadTable()
 
-        text = self.searcher.GetValue()
+        text = self.searcher.GetValue().strip()
 
-        with db.Idiom() as session:
-            if not text.strip():
-                data = session.get_all()
-            else:
-                data = session.like(text)
-
+        session = db.get_conn()
+        if not text:
+            data = db.get_all(session)
+        else:
+            data = db.like(session, text.strip())
+        db.close_conn(session)
         thread_pool_executor.submit(self.LoadIdioms, data)
 
     def OnRemove(self, e):
@@ -250,35 +247,40 @@ class Example(wx.Frame):
             return
         elif dlg == wx.YES:
             len_data = self.list_idioms.GetItemCount()
-            items = [(self.list_idioms.GetItem(i, 1)) for i in range(len_data) if self.list_idioms.IsItemChecked(i)]
 
-            idioms = [(i.Text,) for i in items]
-            if idioms:
+            items = [self.list_idioms.GetItem(i, 1) for i in range(len_data - 1, -1, -1) if self.list_idioms.IsItemChecked(i)]
+
+            if items:
                 self.StopLoadTable()
-                with db.Idiom() as session:
-                    session.removes(idioms)
-                    session.conn.commit()
 
-            for i in items:
-                self.list_idioms.DeleteItem(i.GetId())
+                for i in items:
+                    self.list_idioms.DeleteItem(i.GetId())
+
+                session = db.get_conn()
+                db.removes(session, {'names': ', '.join(i.Text for i in items)})
+                session.connection.commit()
+                db.close_conn(session)
+
+            else:
+                dlg = wx.MessageBox('Nothing to delete!', 'Warning', wx.ICON_ERROR, self)
 
     def OnAdd(self, e):
         dlg = wx.TextEntryDialog(self, "Add idiom", "Input NEW idiom", "Data...")
         res = dlg.ShowModal()
         if res == wx.ID_OK:
-            text = dlg.GetValue()
+            text = dlg.GetValue().strip()
 
-            with db.Idiom() as session:
-                result = session.get(text)
+            session = db.get_conn()
+            try:
+                db.insert(session, text)
+                session.connection.commit()
+            except sqlite3.IntegrityError as exp:
+                dlg = wx.MessageBox('Idiom `{}` is exist'.format(text), 'Warning', wx.ICON_ERROR, self)
 
-                if result:
-                    dlg = wx.MessageBox('Idiom `{}` is exist'.format(result['name']), 'Warning', wx.ICON_WARNING, self)
-                else:
-                    session.insert(text)
-                    session.conn.commit()
+            db.close_conn(session)
 
-                    self.StopLoadTable()
-                    self.list_idioms.Append((self.list_idioms.GetItemCount() + 1, text))
+            self.StopLoadTable()
+            self.list_idioms.Append((self.list_idioms.GetItemCount() + 1, text))
 
     def OnRow(self, event: wx.ListEvent):
         item = self.list_idioms.GetItem(event.GetIndex(), 1)
@@ -292,11 +294,16 @@ class Example(wx.Frame):
             self.list_idioms.SetItem(item.GetId(), 1, text)
 
             if not text:
-                dlg = wx.MessageBox('Empty line!', 'Update Error', wx.ICON_EXCLAMATION, self)
+                dlg = wx.MessageBox('Empty line!', 'Update Error', wx.ICON_ERROR, self)
             else:
-                with db.Idiom() as session:
-                    session.update(item.Text, text)
-                    session.conn.commit()
+                session = db.get_conn()
+                try:
+                    db.update(session, item.Text, text)
+                    session.connection.commit()
+                except sqlite3.IntegrityError as exp:
+                    dlg = wx.MessageBox('This line is exists!', 'Update Error', wx.ICON_ERROR, self)
+
+                db.close_conn(session)
 
     def OnSetFont(self, event):
         dlg = wx.FontDialog(self)

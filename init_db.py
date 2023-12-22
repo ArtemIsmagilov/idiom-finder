@@ -8,10 +8,11 @@ def create_xdxf_table():
     tree = ET.parse('idioms.xml')
     root = tree.getroot()
 
-    with db.Idiom() as session:
-        session.cur.executescript(open('database/create_xdfd_idoms.sql', encoding='utf-8').read())
-        session.cur.executemany("INSERT INTO xdxf_idioms(name) VALUES (?);", [[child.text] for child in root.iter('k')])
-        session.conn.commit()
+    session = db.get_conn()
+    session.cur.executescript(open('database/create_xdxf_idoms.sql', encoding='utf-8').read())
+    session.cur.executemany("INSERT INTO xdxf_idioms(name) VALUES (?);", [[child.text] for child in root.iter('k')])
+    session.conn.commit()
+    db.close_conn(session)
 
 
 def create_wiki_table():
@@ -77,19 +78,20 @@ def create_wiki_table():
 
 
 def create_all_idioms():
-    with db.Idiom() as session:
-        session.cur.executescript(open('database/create_all_idoms.sql', encoding='utf-8').read())
-        session.conn.commit()
+    session = db.get_conn()
+    session.cur.executescript(open('database/create_all_idoms.sql', encoding='utf-8').read())
+    session.conn.commit()
+    db.close_conn(session)
 
 
 def extend_pronouns():
     with (open('database/pronouns.txt', encoding='utf-8') as pr_file,
           open('database/indefinite-pronouns.txt', encoding='utf-8') as in_pr_file,
-          db.Idiom() as session):
-
+          ):
+        session = db.get_conn()
         results = session.get_all()
 
-        pr = pr_file.read().splitlines()
+        pr = pr_file.read().splitlines(keepends=False)
         in_pr = in_pr_file.read().splitlines()
 
         for r in results:
@@ -97,10 +99,14 @@ def extend_pronouns():
                 line = s2.strip()
                 if not line:
                     continue
-                if s2.lower() in r['name'].lower():
+                if line.lower() in r['name'].lower():
                     for s1 in pr:
-                        session.insert(r['name'].replace(s2.lower(), s1.lower()))
+                        line2 = s1.strip()
+                        if not line2:
+                            continue
+                        session.insert(r['name'].replace(line.lower(), line2.lower()))
         session.conn.commit()
+        db.close_conn(session)
         print('extend pronouns completed')
 
 
