@@ -42,9 +42,12 @@
 
 ### Installing
 
-- ZIP Archive [idiom-finder](https://drive.google.com/file/d/1U0Eo0yAYx9vM1pIgnri3BkGBL9HADPgs/view?usp=sharing)
+- ZIP Archive [idiom-finder](https://drive.google.com/file/d/14b0_YBuaEkXgzi0ujJeK9UQF_WYTryfI/view?usp=sharing)
 
 ## For developers
+
+0. developing on python3.11(on python3.12 aiohttp crush with pip install) 
+   and compilation on python3.12(comment `#aiohttp` in requirements.txt, then `auto-py-to-exe`)
 
 1. download XML file
    from https://master.dl.sourceforge.net/project/xdxf/dicts-XDXF/sdict05/comn_sdict_axm05_idioms_eng_rus.tar.bz2?viasf=1

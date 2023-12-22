@@ -164,7 +164,7 @@ class Example(wx.Frame):
 
         self.searcher.AppendText('search...')
 
-        #thread_pool_executor.submit(self.LoadIdioms, data[:1000])
+        # thread_pool_executor.submit(self.LoadIdioms, data[:1000])
 
     def LoadIdioms(self, data):
         self.stop = False
@@ -248,7 +248,10 @@ class Example(wx.Frame):
         elif dlg == wx.YES:
             len_data = self.list_idioms.GetItemCount()
 
-            items = [self.list_idioms.GetItem(i, 1) for i in range(len_data - 1, -1, -1) if self.list_idioms.IsItemChecked(i)]
+            items = [
+                self.list_idioms.GetItem(i, 1) for i in range(len_data - 1, -1, -1)
+                if self.list_idioms.IsItemChecked(i)
+            ]
 
             if items:
                 self.StopLoadTable()

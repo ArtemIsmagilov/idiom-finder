@@ -4,3 +4,4 @@ __pycache__/
 database.sqlite3
 database_default.sqlite3
 output/
+venv-312/
