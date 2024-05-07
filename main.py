@@ -1,6 +1,8 @@
 import sqlite3
 from concurrent import futures
-import wx, os, shutil
+import wx
+import os
+import shutil
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 from database import db
 
@@ -37,29 +39,31 @@ class Example(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
-        self.SetBackgroundColour('#FFFFE5')
+        self.SetBackgroundColour("#FFFFE5")
         self.SetSize((1000, 600))
-        self.SetTitle('Idiom Finder')
+        self.SetTitle("Idiom Finder")
         self.Centre()
 
         menu_bar = wx.MenuBar()
         app_menu = wx.Menu()
-        reset_db_item = app_menu.Append(RESET_DB_ID, "Reset DB\tCtrl+S", 'Reset Database')
-        new_font_item = app_menu.Append(NEW_FONT_ID, 'Font\tCtrl+F', 'New Font')
+        reset_db_item = app_menu.Append(
+            RESET_DB_ID, "Reset DB\tCtrl+S", "Reset Database"
+        )
+        new_font_item = app_menu.Append(NEW_FONT_ID, "Font\tCtrl+F", "New Font")
         app_menu.AppendSeparator()
         exit_item = app_menu.Append(wx.ID_EXIT, "Quit\tCtrl+Q", "Exit App")
 
         self.SetIcon(wx.Icon("imgs/app.ico"))
 
-        i = wx.Bitmap('imgs/settings.png')
+        i = wx.Bitmap("imgs/settings.png")
         i.Rescale(i, (25, 25))
         reset_db_item.SetBitmap(i)
 
-        i = wx.Bitmap('imgs/font.png')
+        i = wx.Bitmap("imgs/font.png")
         i.Rescale(i, (25, 25))
         new_font_item.SetBitmap(i)
 
-        i = wx.Bitmap('imgs/exit.jpg')
+        i = wx.Bitmap("imgs/exit.jpg")
         i.Rescale(i, (25, 25))
         exit_item.SetBitmap(i)
 
@@ -67,7 +71,7 @@ class Example(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnSetFont, new_font_item)
         self.Bind(wx.EVT_MENU, self.onQuit, exit_item)
 
-        menu_bar.Append(app_menu, 'App')
+        menu_bar.Append(app_menu, "App")
 
         self.SetMenuBar(menu_bar)
 
@@ -80,14 +84,22 @@ class Example(wx.Frame):
 
         splitter = wx.SplitterWindow(panel, id=wx.ID_ANY, style=wx.SP_LIVE_UPDATE)
 
-        self.left_text = wx.TextCtrl(splitter, id=INPUT_TEXT_ID, style=wx.TE_MULTILINE | wx.TE_RICH2)
-        self.right_text = wx.TextCtrl(splitter, id=OUTPUT_TEXT_ID, style=wx.TE_MULTILINE | wx.TE_RICH2)
+        self.left_text = wx.TextCtrl(
+            splitter, id=INPUT_TEXT_ID, style=wx.TE_MULTILINE | wx.TE_RICH2
+        )
+        self.right_text = wx.TextCtrl(
+            splitter, id=OUTPUT_TEXT_ID, style=wx.TE_MULTILINE | wx.TE_RICH2
+        )
 
-        self.left_text.AppendText('Input text...')
-        self.right_text.AppendText('Show result searching...')
+        self.left_text.AppendText("Input text...")
+        self.right_text.AppendText("Show result searching...")
 
-        self.left_text.SetFont(font=wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName=""))
-        self.right_text.SetFont(font=wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName=""))
+        self.left_text.SetFont(
+            font=wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName="")
+        )
+        self.right_text.SetFont(
+            font=wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName="")
+        )
 
         splitter.SplitVertically(self.left_text, self.right_text)
         splitter.SetMinimumPaneSize(200)
@@ -99,8 +111,10 @@ class Example(wx.Frame):
         hbox.Add(vbox_splitter, proportion=1, flag=wx.ALL | wx.EXPAND, border=15)
 
         hbox5 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox5.Add(wx.Button(panel, id=BUTTON_SEARCHING_ID, label='Search', size=(70, 30)))
-        hbox5.Add(wx.Button(panel, id=BUTTON_CLEAR_ID, label='Clear', size=(70, 30)))
+        hbox5.Add(
+            wx.Button(panel, id=BUTTON_SEARCHING_ID, label="Search", size=(70, 30))
+        )
+        hbox5.Add(wx.Button(panel, id=BUTTON_CLEAR_ID, label="Clear", size=(70, 30)))
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -118,19 +132,25 @@ class Example(wx.Frame):
         self.panel2 = wx.Panel(self.tabs)
 
         self.searcher = wx.TextCtrl(self.panel2, size=(200, 22))
-        self.go_btn = wx.Button(self.panel2, id=BUTTON_GO, label='Go', size=(30, 22))
+        self.go_btn = wx.Button(self.panel2, id=BUTTON_GO, label="Go", size=(30, 22))
 
-        self.searcher.SetFont(wx.Font(10, wx.ROMAN, 0, 90, underline=False, faceName=""))
+        self.searcher.SetFont(
+            wx.Font(10, wx.ROMAN, 0, 90, underline=False, faceName="")
+        )
 
         hbox_search = wx.BoxSizer(wx.HORIZONTAL)
         hbox_search.Add(self.searcher)
         hbox_search.Add(self.go_btn)
 
-        self.list_idioms = ListCtrlMixins(self.panel2, LIST_IDIOMS, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
+        self.list_idioms = ListCtrlMixins(
+            self.panel2, LIST_IDIOMS, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES
+        )
 
-        self.list_idioms.SetFont(wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName=""))
-        self.list_idioms.InsertColumn(0, '№', width=80)
-        self.list_idioms.InsertColumn(1, 'name', width=140)
+        self.list_idioms.SetFont(
+            wx.Font(14, wx.ROMAN, 0, 90, underline=False, faceName="")
+        )
+        self.list_idioms.InsertColumn(0, "№", width=80)
+        self.list_idioms.InsertColumn(1, "name", width=140)
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -139,12 +159,16 @@ class Example(wx.Frame):
 
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
 
-        hbox6.Add(wx.Button(self.panel2, id=BUTTON_ADD_ID, label='Add', size=(70, 30)))
-        hbox6.Add(wx.Button(self.panel2, id=BUTTON_DELETE_ID, label='Delete', size=(70, 30)))
+        hbox6.Add(wx.Button(self.panel2, id=BUTTON_ADD_ID, label="Add", size=(70, 30)))
+        hbox6.Add(
+            wx.Button(self.panel2, id=BUTTON_DELETE_ID, label="Delete", size=(70, 30))
+        )
 
         vbox.Add(hbox6, flag=wx.ALIGN_RIGHT | wx.RIGHT, border=15)
 
-        self.gauge = wx.Gauge(self.panel2, id=GAUGE_ID, style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
+        self.gauge = wx.Gauge(
+            self.panel2, id=GAUGE_ID, style=wx.GA_HORIZONTAL | wx.GA_SMOOTH
+        )
         vbox.Add(self.gauge, flag=wx.EXPAND | wx.ALL, border=10)
 
         self.panel2.SetSizer(vbox)
@@ -162,7 +186,7 @@ class Example(wx.Frame):
         session = db.get_conn()
         db.close_conn(session)
 
-        self.searcher.AppendText('search...')
+        self.searcher.AppendText("search...")
 
         # thread_pool_executor.submit(self.LoadIdioms, data[:1000])
 
@@ -172,7 +196,7 @@ class Example(wx.Frame):
         len_data = len(data)
         self.gauge.SetRange(len_data)
         self.gauge.Show()
-        self.sb.SetStatusText('Select Idioms...')
+        self.sb.SetStatusText("Select Idioms...")
 
         count = 0
         for r in data:
@@ -180,11 +204,11 @@ class Example(wx.Frame):
             if self.stop:
                 break
             self.gauge.SetValue(count)
-            self.list_idioms.Append((count, r['name']))
+            self.list_idioms.Append((count, r["name"]))
 
         self.gauge.Hide()
 
-        self.sb.SetStatusText('Competed Load idioms: %d' % count)
+        self.sb.SetStatusText("Competed Load idioms: %d" % count)
         self.stop = True
 
     def FindAllIdioms(self, text: str):
@@ -198,17 +222,17 @@ class Example(wx.Frame):
             count += 1
             if self.stop is True:
                 return
-            names, sentence = r['names'], r['sentence']
+            names, sentence = r["names"], r["sentence"]
 
-            line1 = f'{count}){names!r}\n'
-            line2 = f'\n{sentence!r}\n\n'
+            line1 = f"{count}){names!r}\n"
+            line2 = f"\n{sentence!r}\n\n"
             self.right_text.AppendText(line1)
             self.right_text.AppendText(line2)
 
         db.close_conn(session)
 
         if not self.right_text.GetValue():
-            self.right_text.AppendText('Not found Idioms.')
+            self.right_text.AppendText("Not found Idioms.")
 
         self.sb.SetStatusText("Search completed.")
         self.stop = True
@@ -240,8 +264,12 @@ class Example(wx.Frame):
         thread_pool_executor.submit(self.LoadIdioms, data)
 
     def OnRemove(self, e):
-        dlg = wx.MessageBox('Are you sure you want to delete the selected idioms?', 'Question',
-                            style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION, parent=self)
+        dlg = wx.MessageBox(
+            "Are you sure you want to delete the selected idioms?",
+            "Question",
+            style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            parent=self,
+        )
 
         if dlg == wx.NO:
             return
@@ -249,7 +277,8 @@ class Example(wx.Frame):
             len_data = self.list_idioms.GetItemCount()
 
             items = [
-                self.list_idioms.GetItem(i, 1) for i in range(len_data - 1, -1, -1)
+                self.list_idioms.GetItem(i, 1)
+                for i in range(len_data - 1, -1, -1)
                 if self.list_idioms.IsItemChecked(i)
             ]
 
@@ -260,12 +289,14 @@ class Example(wx.Frame):
                     self.list_idioms.DeleteItem(i.GetId())
 
                 session = db.get_conn()
-                db.removes(session, {'names': ', '.join(i.Text for i in items)})
+                db.removes(session, {"names": ", ".join(i.Text for i in items)})
                 session.connection.commit()
                 db.close_conn(session)
 
             else:
-                dlg = wx.MessageBox('Nothing to delete!', 'Warning', wx.ICON_ERROR, self)
+                dlg = wx.MessageBox(
+                    "Nothing to delete!", "Warning", wx.ICON_ERROR, self
+                )
 
     def OnAdd(self, e):
         dlg = wx.TextEntryDialog(self, "Add idiom", "Input NEW idiom", "Data...")
@@ -277,8 +308,10 @@ class Example(wx.Frame):
             try:
                 db.insert(session, text)
                 session.connection.commit()
-            except sqlite3.IntegrityError as exp:
-                dlg = wx.MessageBox('Idiom `{}` is exist'.format(text), 'Warning', wx.ICON_ERROR, self)
+            except sqlite3.IntegrityError:
+                dlg = wx.MessageBox(
+                    "Idiom `{}` is exist".format(text), "Warning", wx.ICON_ERROR, self
+                )
 
             db.close_conn(session)
 
@@ -290,21 +323,22 @@ class Example(wx.Frame):
         dlg = wx.TextEntryDialog(self, "Update idiom", "Replace idiom", item.Text)
         res = dlg.ShowModal()
         if res == wx.ID_OK:
-
             text = dlg.GetValue().strip()
 
             self.StopLoadTable()
             self.list_idioms.SetItem(item.GetId(), 1, text)
 
             if not text:
-                dlg = wx.MessageBox('Empty line!', 'Update Error', wx.ICON_ERROR, self)
+                dlg = wx.MessageBox("Empty line!", "Update Error", wx.ICON_ERROR, self)
             else:
                 session = db.get_conn()
                 try:
                     db.update(session, item.Text, text)
                     session.connection.commit()
-                except sqlite3.IntegrityError as exp:
-                    dlg = wx.MessageBox('This line is exists!', 'Update Error', wx.ICON_ERROR, self)
+                except sqlite3.IntegrityError:
+                    dlg = wx.MessageBox(
+                        "This line is exists!", "Update Error", wx.ICON_ERROR, self
+                    )
 
                 db.close_conn(session)
 
@@ -325,9 +359,9 @@ class Example(wx.Frame):
             self.list_idioms.SetForegroundColour(foreground_color)
 
     def OnResetDB(self, event):
-        os.remove('database/database.sqlite3')
-        shutil.copy('database/database_default.sqlite3', 'database/database.sqlite3')
-        self.sb.SetStatusText('Database was reset.')
+        os.remove("database/database.sqlite3")
+        shutil.copy("database/database_default.sqlite3", "database/database.sqlite3")
+        self.sb.SetStatusText("Database was reset.")
 
     def onQuit(self, event):
         self.Close()
@@ -343,5 +377,5 @@ def main():
     app.MainLoop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
